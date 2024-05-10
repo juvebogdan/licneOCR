@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR File Upload</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background: #007bff;
+            background: linear-gradient(to right, #0062E6, #33AEFF);
+            color: #FFF;
+            height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 10%;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .custom-file-label::after {
+            content: "Browse";
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        #responseArea, #imagePreview {
+            animation: fadeIn 1s;
+        }
+        #imagePreview img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="text-center mb-4">Upload Image for OCR</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <div class="custom-file mb-3">
+            <input type="file" name="file" class="custom-file-input" id="customFile" required>
+            <label class="custom-file-label" for="customFile">Choose file</label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Upload</button>
+    </form>
+    <div id="loadingSpinner" class="text-center mt-4" style="display:none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+    <div id="imagePreview" style="display:none;"></div> <!-- Container for image preview -->
+    <div id="responseArea" class="mt-4" style="display:none;"></div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $('.custom-file-input').on('change', function() {
+        var fileName = $(this).val().split('\\').pop();
+        $(this).next('.custom-file-label').addClass("selected").html(fileName);
+    });
+
+    document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        $('#responseArea, #imagePreview').hide();
+        $('#loadingSpinner').show();
+
+        const formData = new FormData(this);
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        $('#loadingSpinner').hide();
+        const data = await response.json();
+
+        // Display the uploaded image
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            $('#imagePreview').html(`<img src="${e.target.result}" alt="Uploaded Image">`).show();
+        }
+        reader.readAsDataURL(document.getElementById('customFile').files[0]);
+
+        // Build the content string based on the keyOrder
+        let content = '<p class="alert alert-success">';
+        const keyOrder = ['name', 'surname', 'card_id', 'birthdate', 'expiry_date', 'gender', 'nationality'];
+        keyOrder.forEach(key => {
+            if (data[key]) {
+                content += `<strong>${key.charAt(0).toUpperCase() + key.slice(1)}:</strong> ${data[key]}<br>`;
+            }
+        });
+        content += '</p>';
+
+        document.getElementById('responseArea').innerHTML = content;
+        $('#responseArea').show();
+    });
+</script>
+</body>
+</html>
